@@ -1,17 +1,13 @@
 package main
 
 import (
-	"log"
-
-	todobackend "github.com/IBKnight/todo-backend"
-	"github.com/IBKnight/todo-backend/pkg/handler"
+	"log/slog"
+	"os"
 )
 
 func main() {
-	handler := handler.Handler{}
-
-	srv := new(todobackend.Server)
-	if err := srv.Run("8080", handler.InitRoutes()); err != nil {
-		log.Fatalf("error occured while running http server: %s", err.Error())
+	if err := Init(); err != nil {
+		slog.Error("failed to run app", "error", err.Error())
+		os.Exit(1)
 	}
 }

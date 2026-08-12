@@ -1,8 +1,25 @@
 package handler
 
-import "github.com/gin-gonic/gin"
+import (
+	"github.com/gin-gonic/gin"
+)
 
 type Handler struct {
+	auth Authorization
+	list TodoList
+	item TodoItem
+}
+
+func NewHandler(
+	auth Authorization,
+	list TodoList,
+	item TodoItem,
+) *Handler {
+	return &Handler{
+		auth: auth,
+		list: list,
+		item: item,
+	}
 }
 
 func (h *Handler) InitRoutes() *gin.Engine {
