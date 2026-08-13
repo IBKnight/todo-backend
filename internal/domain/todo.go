@@ -1,4 +1,4 @@
-package todobackend
+package domain
 
 type TodoList struct {
 	Id          int    `json:"-"`

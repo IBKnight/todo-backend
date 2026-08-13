@@ -2,12 +2,12 @@ package todolist
 
 import "github.com/IBKnight/todo-backend/internal/repository"
 
-type TodoList struct {
+type TodoListService struct {
 	repo *repository.TodoListRepo
 }
 
-func NewService(repo *repository.TodoListRepo) *TodoList {
-	return &TodoList{
+func NewService(repo *repository.TodoListRepo) *TodoListService {
+	return &TodoListService{
 		repo: repo,
 	}
 }
