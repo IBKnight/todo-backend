@@ -1,8 +1,10 @@
 package repository
 
+import "github.com/jmoiron/sqlx"
+
 type AuthRepo struct {
 }
 
-func NewAuthRepo() *AuthRepo {
+func NewAuthRepo(db *sqlx.DB) *AuthRepo {
 	return &AuthRepo{}
 }
