@@ -8,24 +8,47 @@ import (
 )
 
 func (h *Handler) signIn(ctx *gin.Context) {
+	var req SignInRequest
 
-}
-
-func (h *Handler) signUp(ctx *gin.Context) {
-	var input domain.User
-
-	if err := ctx.BindJSON(&input); err != nil {
+	if err := ctx.BindJSON(&req); err != nil {
 		newErrorResponse(ctx, http.StatusBadRequest, err.Error())
 		return
 	}
 
-	id, err := h.auth.CreateUser(input)
+	token, err := h.auth.GenerateToken(req.Username, req.Password)
 	if err != nil {
-		newErrorResponse(ctx, http.StatusInternalServerError, err.Error())
+		newErrorResponse(ctx, http.StatusNotFound, err.Error())
+		return
 	}
 
-	ctx.JSON(http.StatusOK, map[string]any{
-		"id": id,
+	ctx.JSON(http.StatusOK, SignInResponse{
+		Token: token,
+	})
+
+}
+
+func (h *Handler) signUp(ctx *gin.Context) {
+	var req SignUpRequest
+
+	if err := ctx.BindJSON(&req); err != nil {
+		newErrorResponse(ctx, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	user := domain.User{
+		Name:     req.Name,
+		Username: req.Username,
+		Password: req.Password,
+	}
+
+	id, err := h.auth.CreateUser(user)
+	if err != nil {
+		newErrorResponse(ctx, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	ctx.JSON(http.StatusOK, UserResponse{
+		ID: id,
 	})
 
 }

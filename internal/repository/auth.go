@@ -28,3 +28,17 @@ func (r *AuthRepo) CreateUser(user domain.User) (int, error) {
 
 	return id, nil
 }
+
+func (r *AuthRepo) GetUserByUsername(username string) (domain.User, error) {
+	var user domain.User
+
+	query := fmt.Sprintf("SELECT id, username, password_hash FROM %s WHERE username = $1", userTable)
+
+	row := r.db.QueryRow(query, username)
+
+	if err := row.Scan(&user.Id, &user.Username, &user.Password); err != nil {
+		return domain.User{}, err
+	}
+
+	return user, nil
+}

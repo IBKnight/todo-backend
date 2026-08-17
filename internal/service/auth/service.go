@@ -2,19 +2,32 @@ package auth
 
 import (
 	"fmt"
+	"strconv"
+	"time"
 
 	"github.com/IBKnight/todo-backend/internal/domain"
 	"github.com/IBKnight/todo-backend/internal/repository"
+	"github.com/golang-jwt/jwt/v5"
+	"github.com/sirupsen/logrus"
 	"golang.org/x/crypto/bcrypt"
 )
 
-type AuthService struct {
-	repo *repository.AuthRepo
+type tokenClaims struct {
+	jwt.RegisteredClaims
+	UserID int `json:"user_id"`
 }
 
-func NewService(repo *repository.AuthRepo) *AuthService {
+type AuthService struct {
+	repo     *repository.AuthRepo
+	secret   []byte
+	tokenTTL time.Duration
+}
+
+func NewService(repo *repository.AuthRepo, secret []byte, tokenTTL time.Duration) *AuthService {
 	return &AuthService{
-		repo: repo,
+		repo:     repo,
+		secret:   secret,
+		tokenTTL: tokenTTL,
 	}
 }
 
@@ -27,4 +40,33 @@ func (s *AuthService) CreateUser(user domain.User) (int, error) {
 
 	user.Password = string(hash)
 	return s.repo.CreateUser(user)
+}
+
+func (s *AuthService) GenerateToken(username string, password string) (string, error) {
+	user, err := s.repo.GetUserByUsername(username)
+
+	if err != nil {
+		logrus.Info(user, err, password, username)
+		return "", domain.ErrInvalidCredentials
+	}
+
+	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password)); err != nil {
+		logrus.Info(user, err, password, username)
+		return "", domain.ErrInvalidCredentials
+	}
+
+	now := time.Now()
+
+	claims := tokenClaims{
+		RegisteredClaims: jwt.RegisteredClaims{
+			ExpiresAt: jwt.NewNumericDate(now.Add(s.tokenTTL)),
+			IssuedAt:  jwt.NewNumericDate(now),
+			Subject:   strconv.Itoa(user.Id),
+		},
+		UserID: user.Id,
+	}
+
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+
+	return token.SignedString(s.secret)
 }

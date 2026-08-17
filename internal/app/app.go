@@ -3,6 +3,7 @@ package app
 import (
 	"fmt"
 	"os"
+	"time"
 
 	"github.com/IBKnight/todo-backend/internal/handler"
 	"github.com/IBKnight/todo-backend/internal/repository"
@@ -31,6 +32,8 @@ func Init() error {
 	dbName := viper.GetString("db.dbname")
 	dbSSLMode := viper.GetString("db.sslmode")
 	dbPassword := os.Getenv("DB_PASSWORD")
+	secret := os.Getenv("SECRET")
+	tokenTTL := time.Hour
 
 	db, err := repository.NewPostgresDB(
 		&repository.Config{
@@ -55,7 +58,7 @@ func Init() error {
 	todoListRepo := repository.NewTodoListRepo(db)
 	todoItemRepo := repository.NewTodoItemRepo(db)
 
-	authService := auth.NewService(authRepo)
+	authService := auth.NewService(authRepo, []byte(secret), tokenTTL)
 	todolistService := todolist.NewService(todoListRepo)
 	todoItemService := todoitem.NewService(todoItemRepo)
 
