@@ -1,10 +1,12 @@
 package repository
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/IBKnight/todo-backend/internal/domain"
 	"github.com/jmoiron/sqlx"
+	"github.com/lib/pq"
 )
 
 type AuthRepo struct {
@@ -23,7 +25,11 @@ func (r *AuthRepo) CreateUser(user domain.User) (int, error) {
 	row := r.db.QueryRow(query, user.Name, user.Username, user.Password)
 
 	if err := row.Scan(&id); err != nil {
-		return 0, err
+		var pqErr *pq.Error
+		if errors.As(err, &pqErr) && pqErr.Code == "23505" {
+			return 0, domain.ErrUserAlreadyExists
+		}
+		return 0, fmt.Errorf("create user: %w", err)
 	}
 
 	return id, nil

@@ -70,3 +70,25 @@ func (s *AuthService) GenerateToken(username string, password string) (string, e
 
 	return token.SignedString(s.secret)
 }
+
+func (s *AuthService) ParseToken(tokenStr string) (int, error) {
+	token, err := jwt.ParseWithClaims(tokenStr, &tokenClaims{}, func(t *jwt.Token) (interface{}, error) {
+		if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, fmt.Errorf("unexpected signing method: %v", t.Header["alg"])
+		}
+		return s.secret, nil
+	}, jwt.WithValidMethods([]string{"HS256"}))
+
+	if err != nil {
+		return 0, domain.ErrInvalidToken
+	}
+
+	claims, ok := token.Claims.(*tokenClaims)
+
+	if !ok || !token.Valid {
+		return 0, domain.ErrInvalidToken
+	}
+
+	return claims.UserID, nil
+
+}
