@@ -3,8 +3,8 @@ package app
 import (
 	"fmt"
 	"os"
+	"time"
 
-	todobackend "github.com/IBKnight/todo-backend"
 	"github.com/IBKnight/todo-backend/internal/handler"
 	"github.com/IBKnight/todo-backend/internal/repository"
 	"github.com/IBKnight/todo-backend/internal/service/auth"
@@ -32,6 +32,8 @@ func Init() error {
 	dbName := viper.GetString("db.dbname")
 	dbSSLMode := viper.GetString("db.sslmode")
 	dbPassword := os.Getenv("DB_PASSWORD")
+	secret := os.Getenv("SECRET")
+	tokenTTL := time.Hour
 
 	db, err := repository.NewPostgresDB(
 		&repository.Config{
@@ -56,7 +58,7 @@ func Init() error {
 	todoListRepo := repository.NewTodoListRepo(db)
 	todoItemRepo := repository.NewTodoItemRepo(db)
 
-	authService := auth.NewService(authRepo)
+	authService := auth.NewService(authRepo, []byte(secret), tokenTTL)
 	todolistService := todolist.NewService(todoListRepo)
 	todoItemService := todoitem.NewService(todoItemRepo)
 
@@ -66,7 +68,7 @@ func Init() error {
 		todoItemService,
 	)
 
-	srv := new(todobackend.Server)
+	srv := new(Server)
 	if err := srv.Run(port, handler.InitRoutes()); err != nil {
 		return fmt.Errorf("error occured while running http server: %s", err.Error())
 	}
