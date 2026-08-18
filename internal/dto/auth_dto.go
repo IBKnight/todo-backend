@@ -1,4 +1,4 @@
-package handler
+package dto
 
 type SignUpRequest struct {
 	Name     string `json:"name" binding:"required"`
