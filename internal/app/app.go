@@ -1,8 +1,13 @@
 package app
 
 import (
+	"context"
+	"errors"
 	"fmt"
+	"net/http"
 	"os"
+	"os/signal"
+	"syscall"
 	"time"
 
 	"github.com/IBKnight/todo-backend/internal/handler"
@@ -12,16 +17,17 @@ import (
 	todolist "github.com/IBKnight/todo-backend/internal/service/todo_list"
 	"github.com/IBKnight/todo-backend/migrations"
 	"github.com/joho/godotenv"
+	"github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 )
 
 func Init() error {
-	if err := initConfig(); err != nil {
-		return fmt.Errorf("error occured while configs init: %s", err.Error())
-	}
-
 	if err := godotenv.Load(); err != nil {
 		return fmt.Errorf("error occured while env init: %s", err.Error())
+	}
+
+	if err := initConfig(); err != nil {
+		return fmt.Errorf("error occured while configs init: %s", err.Error())
 	}
 
 	port := viper.GetString("port")
@@ -31,8 +37,17 @@ func Init() error {
 	dbUsername := viper.GetString("db.username")
 	dbName := viper.GetString("db.dbname")
 	dbSSLMode := viper.GetString("db.sslmode")
+
 	dbPassword := os.Getenv("DB_PASSWORD")
+	if dbPassword == "" {
+		return errors.New("DB_PASSWORD env var is required")
+	}
+
 	secret := os.Getenv("SECRET")
+	if secret == "" {
+		return errors.New("SECRET env var is required")
+	}
+
 	tokenTTL := time.Hour
 
 	db, err := repository.NewPostgresDB(
@@ -46,8 +61,7 @@ func Init() error {
 		})
 
 	if err != nil {
-		return fmt.Errorf("error occured while db init: %s", err.Error())
-
+		return fmt.Errorf("error occured while db init: %w", err)
 	}
 
 	if err := migrations.Up(db); err != nil {
@@ -62,16 +76,40 @@ func Init() error {
 	todolistService := todolist.NewService(todoListRepo)
 	todoItemService := todoitem.NewService(todoItemRepo)
 
-	handler := handler.NewHandler(
+	h := handler.NewHandler(
 		authService,
 		todolistService,
 		todoItemService,
 	)
 
-	srv := new(Server)
-	if err := srv.Run(port, handler.InitRoutes()); err != nil {
-		return fmt.Errorf("error occured while running http server: %s", err.Error())
+	srv := NewServer(port, h.InitRoutes())
+
+	go func() {
+		if err := srv.Run(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+			logrus.Fatalf("error occured while running http server: %s", err)
+		}
+	}()
+
+	logrus.Info("todo app started")
+
+	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	defer stop()
+	<-ctx.Done()
+
+	logrus.Info("todo app shutting down")
+
+	shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	if err := srv.Shutdown(shutdownCtx); err != nil {
+		logrus.Errorf("error occured on server shutting down: %s", err)
 	}
+
+	if err := db.Close(); err != nil {
+		logrus.Errorf("error occured on db connection close: %s", err)
+	}
+
+	logrus.Info("todo app stopped")
 
 	return nil
 }
