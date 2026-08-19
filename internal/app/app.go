@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 
@@ -23,7 +24,7 @@ import (
 
 func Init() error {
 	if err := godotenv.Load(); err != nil {
-		return fmt.Errorf("error occured while env init: %s", err.Error())
+		logrus.Debug("no .env file, reading config from environment")
 	}
 
 	if err := initConfig(); err != nil {
@@ -117,5 +118,7 @@ func Init() error {
 func initConfig() error {
 	viper.AddConfigPath("configs")
 	viper.SetConfigName("config")
+	viper.AutomaticEnv()
+	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 	return viper.ReadInConfig()
 }

@@ -1,0 +1,9 @@
+.git
+.env
+*.md
+Dockerfile
+docker-compose.yml
+**/*_test.go
+.vscode
+.idea
+tmp
