@@ -8,6 +8,7 @@ import (
 
 	"github.com/IBKnight/todo-backend/internal/domain"
 	"github.com/jmoiron/sqlx"
+	"github.com/sirupsen/logrus"
 )
 
 type TodoListRepo struct {
@@ -82,7 +83,7 @@ func (r *TodoListRepo) GetUserLists(ctx context.Context, userId int) ([]domain.T
 }
 
 func (r *TodoListRepo) GetListById(ctx context.Context, listId int, userId int) (domain.TodoList, error) {
-	var list domain.TodoList
+	var list todoListRow
 
 	query := fmt.Sprintf(
 		`SELECT tl.id, tl.title, tl.description
@@ -102,5 +103,59 @@ func (r *TodoListRepo) GetListById(ctx context.Context, listId int, userId int) 
 		return domain.TodoList{}, fmt.Errorf("scan list: %w", err)
 	}
 
-	return list, nil
+	return list.toDomain(), nil
+}
+
+func (r *TodoListRepo) RemoveList(ctx context.Context, userId int, listId int) error {
+	query := fmt.Sprintf(
+		`DELETE FROM %s tl
+		 USING %s ul
+		 WHERE tl.id = ul.list_id AND ul.user_id = $1 AND ul.list_id = $2`,
+		todoListsTable, usersListsTable,
+	)
+
+	res, err := r.db.ExecContext(ctx, query, userId, listId)
+	if err != nil {
+		return fmt.Errorf("delete list: %w", err)
+	}
+
+	logrus.Info(res)
+
+	affected, err := res.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("rows affected: %w", err)
+	}
+
+	if affected == 0 {
+		return domain.ErrListNotFound
+	}
+
+	return nil
+}
+
+func (r *TodoListRepo) UpdateList(ctx context.Context, userId int, updatedTodoList domain.TodoList) (domain.TodoList, error) {
+	row := toRow(updatedTodoList)
+
+	query := fmt.Sprintf(
+		`UPDATE %s tl SET title=$1, description=$2
+	 FROM %s ul
+	 WHERE tl.id = ul.list_id AND ul.list_id=$3 AND ul.user_id=$4
+	 RETURNING tl.id, tl.title, tl.description`,
+		todoListsTable, usersListsTable,
+	)
+
+	var updated domain.TodoList
+
+	err := r.db.QueryRowContext(ctx, query,
+		row.Title, row.Description, row.ID, userId,
+	).Scan(&updated.ID, &updated.Title, &updated.Description)
+
+	if errors.Is(err, sql.ErrNoRows) {
+		return domain.TodoList{}, domain.ErrListNotFound
+	}
+	if err != nil {
+		return domain.TodoList{}, fmt.Errorf("update list: %w", err)
+	}
+
+	return updated, nil
 }

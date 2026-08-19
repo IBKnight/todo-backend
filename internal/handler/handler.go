@@ -5,15 +5,15 @@ import (
 )
 
 type Handler struct {
-	auth Authorization
-	list TodoList
-	item TodoItem
+	auth AuthorizationService
+	list TodoListService
+	item TodoItemService
 }
 
 func NewHandler(
-	auth Authorization,
-	list TodoList,
-	item TodoItem,
+	auth AuthorizationService,
+	list TodoListService,
+	item TodoItemService,
 ) *Handler {
 	return &Handler{
 		auth: auth,

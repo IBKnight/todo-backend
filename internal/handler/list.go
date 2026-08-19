@@ -90,9 +90,80 @@ func (h *Handler) getListById(ctx *gin.Context) {
 }
 
 func (h *Handler) updateList(ctx *gin.Context) {
+	userId, ok := getUserID(ctx)
+
+	if !ok {
+		newErrorResponse(ctx, http.StatusInternalServerError, "user id not found")
+		return
+	}
+
+	listId, err := strconv.Atoi(ctx.Param("id"))
+
+	if err != nil {
+		newErrorResponse(ctx, http.StatusBadRequest, "failed to parse list id")
+		return
+	}
+
+	var reqList dto.UpdateListRequest
+
+	if err := ctx.BindJSON(&reqList); err != nil {
+		newErrorResponse(ctx, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	domList := domain.TodoList{
+		ID:          listId,
+		Title:       reqList.Title,
+		Description: reqList.Description,
+	}
+
+	updatedList, err := h.list.UpdateList(ctx.Request.Context(), userId, domList)
+
+	if err != nil {
+		if errors.Is(err, domain.ErrListNotFound) {
+			newErrorResponse(ctx, http.StatusNotFound, "list not found")
+			return
+		}
+
+		logrus.Error("get user lists", "err", err, "user_id", userId)
+		newErrorResponse(ctx, http.StatusInternalServerError, "failed to get list")
+		return
+	}
+
+	ctx.JSON(http.StatusOK, dto.ListResponse{
+		ID:          updatedList.ID,
+		Title:       updatedList.Title,
+		Description: updatedList.Description,
+	})
 
 }
 
 func (h *Handler) deleteList(ctx *gin.Context) {
+	userId, ok := getUserID(ctx)
+
+	if !ok {
+		newErrorResponse(ctx, http.StatusInternalServerError, "user id not found")
+		return
+	}
+
+	listId, err := strconv.Atoi(ctx.Param("id"))
+
+	if err != nil {
+		newErrorResponse(ctx, http.StatusBadRequest, "failed to parse list id")
+		return
+	}
+
+	if err := h.list.RemoveList(ctx.Request.Context(), userId, listId); err != nil {
+		if errors.Is(err, domain.ErrListNotFound) {
+			newErrorResponse(ctx, http.StatusNotFound, "list not found")
+			return
+		}
+
+		logrus.Error("get user lists", "err", err, "user_id", userId)
+		newErrorResponse(ctx, http.StatusInternalServerError, "failed to get list")
+		return
+	}
+
+	ctx.Status(http.StatusNoContent)
 
 }
