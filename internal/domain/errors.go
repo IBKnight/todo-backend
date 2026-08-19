@@ -11,4 +11,5 @@ var (
 	ErrListNotFound       = errors.New("list not found")
 	ErrItemNotFound       = errors.New("item not found")
 	ErrValidation         = errors.New("validation failed")
+	ErrUserExists         = errors.New("username already taken")
 )

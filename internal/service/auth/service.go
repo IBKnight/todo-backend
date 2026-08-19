@@ -32,8 +32,14 @@ func NewService(repo service.AuthorizationRepository, secret []byte, tokenTTL ti
 }
 
 func (s *AuthService) CreateUser(user domain.User) (int, error) {
-	hash, err := bcrypt.GenerateFromPassword([]byte(user.Password), bcrypt.DefaultCost)
+	if len(user.Password) > 72 {
+		return 0, fmt.Errorf("%w: password is too long", domain.ErrValidation)
+	}
+	if len([]rune(user.Username)) < 3 {
+		return 0, fmt.Errorf("%w: username is too short", domain.ErrValidation)
+	}
 
+	hash, err := bcrypt.GenerateFromPassword([]byte(user.Password), bcrypt.DefaultCost)
 	if err != nil {
 		return 0, fmt.Errorf("hash password: %w", err)
 	}
@@ -46,7 +52,6 @@ func (s *AuthService) GenerateToken(username string, password string) (string, e
 	user, err := s.repo.GetUserByUsername(username)
 
 	if err != nil {
-		logrus.Info(user, err, password, username)
 		return "", domain.ErrInvalidCredentials
 	}
 
