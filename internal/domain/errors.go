@@ -9,4 +9,6 @@ var (
 	ErrTaskNotFound       = errors.New("task not found")
 	ErrInvalidToken       = errors.New("invalid token")
 	ErrListNotFound       = errors.New("list not found")
+	ErrItemNotFound       = errors.New("item not found")
+	ErrValidation         = errors.New("validation failed")
 )

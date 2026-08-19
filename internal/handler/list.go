@@ -36,8 +36,8 @@ func (h *Handler) createList(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, dto.CreatedListResponse{
 		ID: listId,
 	})
-
 }
+
 func (h *Handler) getAllLists(ctx *gin.Context) {
 	userId, ok := getUserID(ctx)
 
@@ -78,6 +78,7 @@ func (h *Handler) getListById(ctx *gin.Context) {
 	if err != nil {
 		if errors.Is(err, domain.ErrListNotFound) {
 			newErrorResponse(ctx, http.StatusNotFound, "list not found")
+			return
 		}
 
 		logrus.Error("get user lists", "err", err, "user_id", userId)

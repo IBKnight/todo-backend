@@ -20,4 +20,9 @@ type TodoListRepository interface {
 }
 
 type TodoItemRepository interface {
+	Create(ctx context.Context, userID, listID int, item domain.TodoItem) (domain.TodoItem, error)
+	GetAll(ctx context.Context, userID, listID int) ([]domain.TodoItem, error)
+	GetByID(ctx context.Context, userID, itemID int) (domain.TodoItem, error)
+	Update(ctx context.Context, userID int, item domain.TodoItem) (domain.TodoItem, error)
+	Delete(ctx context.Context, userID, itemID int) error
 }
