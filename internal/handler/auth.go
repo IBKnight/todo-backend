@@ -1,38 +1,19 @@
 package handler
 
 import (
+	"errors"
 	"net/http"
 
 	"github.com/IBKnight/todo-backend/internal/domain"
 	"github.com/IBKnight/todo-backend/internal/dto"
 	"github.com/gin-gonic/gin"
+	"github.com/sirupsen/logrus"
 )
 
-func (h *Handler) signIn(ctx *gin.Context) {
-	var req dto.SignInRequest
-
-	if err := ctx.BindJSON(&req); err != nil {
-		newErrorResponse(ctx, http.StatusBadRequest, err.Error())
-		return
-	}
-
-	token, err := h.auth.GenerateToken(req.Username, req.Password)
-	if err != nil {
-		newErrorResponse(ctx, http.StatusNotFound, err.Error())
-		return
-	}
-
-	ctx.JSON(http.StatusOK, dto.SignInResponse{
-		Token: token,
-	})
-
-}
-
-func (h *Handler) signUp(ctx *gin.Context) {
+func (h *Handler) signUp(c *gin.Context) {
 	var req dto.SignUpRequest
-
-	if err := ctx.BindJSON(&req); err != nil {
-		newErrorResponse(ctx, http.StatusBadRequest, err.Error())
+	if err := c.ShouldBindJSON(&req); err != nil {
+		newErrorResponse(c, http.StatusBadRequest, "invalid input body")
 		return
 	}
 
@@ -44,12 +25,47 @@ func (h *Handler) signUp(ctx *gin.Context) {
 
 	id, err := h.auth.CreateUser(user)
 	if err != nil {
-		newErrorResponse(ctx, http.StatusInternalServerError, err.Error())
+		switch {
+		case errors.Is(err, domain.ErrUserExists):
+			newErrorResponse(c, http.StatusConflict, "username already taken")
+		case errors.Is(err, domain.ErrValidation):
+			newErrorResponse(c, http.StatusBadRequest, err.Error())
+		default:
+			logrus.WithFields(logrus.Fields{
+				"op":       "sign up",
+				"username": req.Username,
+				"error":    err,
+			}).Error("failed to create user")
+			newErrorResponse(c, http.StatusInternalServerError, "internal server error")
+		}
 		return
 	}
 
-	ctx.JSON(http.StatusOK, dto.UserResponse{
-		ID: id,
-	})
+	c.JSON(http.StatusCreated, dto.UserResponse{ID: id})
+}
 
+func (h *Handler) signIn(c *gin.Context) {
+	var req dto.SignInRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		newErrorResponse(c, http.StatusBadRequest, "invalid input body")
+		return
+	}
+
+	token, err := h.auth.GenerateToken(req.Username, req.Password)
+	if err != nil {
+		if errors.Is(err, domain.ErrInvalidCredentials) || errors.Is(err, domain.ErrUserNotFound) {
+			newErrorResponse(c, http.StatusUnauthorized, "invalid credentials")
+			return
+		}
+
+		logrus.WithFields(logrus.Fields{
+			"op":       "sign in",
+			"username": req.Username,
+			"error":    err,
+		}).Error("failed to generate token")
+		newErrorResponse(c, http.StatusInternalServerError, "internal server error")
+		return
+	}
+
+	c.JSON(http.StatusOK, dto.SignInResponse{Token: token})
 }

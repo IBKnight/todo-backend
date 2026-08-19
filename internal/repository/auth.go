@@ -1,6 +1,7 @@
 package repository
 
 import (
+	"database/sql"
 	"errors"
 	"fmt"
 
@@ -40,10 +41,14 @@ func (r *AuthRepo) GetUserByUsername(username string) (domain.User, error) {
 
 	query := fmt.Sprintf("SELECT id, username, password_hash FROM %s WHERE username = $1", userTable)
 
-	row := r.db.QueryRow(query, username)
+	err := r.db.QueryRow(query, username).
+		Scan(&user.Id, &user.Username, &user.Password)
 
-	if err := row.Scan(&user.Id, &user.Username, &user.Password); err != nil {
-		return domain.User{}, err
+	if errors.Is(err, sql.ErrNoRows) {
+		return domain.User{}, domain.ErrUserNotFound
+	}
+	if err != nil {
+		return domain.User{}, fmt.Errorf("get user by username: %w", err)
 	}
 
 	return user, nil
