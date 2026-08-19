@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/IBKnight/todo-backend/internal/domain"
-	"github.com/IBKnight/todo-backend/internal/repository"
+	"github.com/IBKnight/todo-backend/internal/service"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/crypto/bcrypt"
@@ -18,12 +18,12 @@ type tokenClaims struct {
 }
 
 type AuthService struct {
-	repo     *repository.AuthRepo
+	repo     service.AuthorizationRepository
 	secret   []byte
 	tokenTTL time.Duration
 }
 
-func NewService(repo *repository.AuthRepo, secret []byte, tokenTTL time.Duration) *AuthService {
+func NewService(repo service.AuthorizationRepository, secret []byte, tokenTTL time.Duration) *AuthService {
 	return &AuthService{
 		repo:     repo,
 		secret:   secret,

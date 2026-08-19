@@ -1,12 +1,14 @@
 package todoitem
 
-import "github.com/IBKnight/todo-backend/internal/repository"
+import (
+	"github.com/IBKnight/todo-backend/internal/service"
+)
 
 type TodoItemService struct {
-	repo *repository.TodoItemRepo
+	repo service.TodoItemRepository
 }
 
-func NewService(repo *repository.TodoItemRepo) *TodoItemService {
+func NewService(repo service.TodoItemRepository) *TodoItemService {
 	return &TodoItemService{
 		repo: repo,
 	}

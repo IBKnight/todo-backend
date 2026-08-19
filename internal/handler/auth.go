@@ -4,11 +4,12 @@ import (
 	"net/http"
 
 	"github.com/IBKnight/todo-backend/internal/domain"
+	"github.com/IBKnight/todo-backend/internal/dto"
 	"github.com/gin-gonic/gin"
 )
 
 func (h *Handler) signIn(ctx *gin.Context) {
-	var req SignInRequest
+	var req dto.SignInRequest
 
 	if err := ctx.BindJSON(&req); err != nil {
 		newErrorResponse(ctx, http.StatusBadRequest, err.Error())
@@ -21,14 +22,14 @@ func (h *Handler) signIn(ctx *gin.Context) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, SignInResponse{
+	ctx.JSON(http.StatusOK, dto.SignInResponse{
 		Token: token,
 	})
 
 }
 
 func (h *Handler) signUp(ctx *gin.Context) {
-	var req SignUpRequest
+	var req dto.SignUpRequest
 
 	if err := ctx.BindJSON(&req); err != nil {
 		newErrorResponse(ctx, http.StatusBadRequest, err.Error())
@@ -47,7 +48,7 @@ func (h *Handler) signUp(ctx *gin.Context) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, UserResponse{
+	ctx.JSON(http.StatusOK, dto.UserResponse{
 		ID: id,
 	})
 

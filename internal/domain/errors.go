@@ -8,4 +8,5 @@ var (
 	ErrInvalidCredentials = errors.New("invalid credentials")
 	ErrTaskNotFound       = errors.New("task not found")
 	ErrInvalidToken       = errors.New("invalid token")
+	ErrListNotFound       = errors.New("list not found")
 )
