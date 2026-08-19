@@ -11,29 +11,11 @@ func (r CreateListRequest) ToDomain() domain.TodoList {
 	}
 }
 
-func (r CreateItemRequest) ToDomain(listID int) domain.TodoItem {
-	return domain.TodoItem{
-		ListID:      listID,
-		Title:       r.Title,
-		Description: r.Description,
-	}
-}
-
 func NewListResponse(l domain.TodoList) ListResponse {
 	return ListResponse{
 		ID:          l.ID,
 		Title:       l.Title,
 		Description: l.Description,
-	}
-}
-
-func NewItemResponse(i domain.TodoItem) ItemResponse {
-	return ItemResponse{
-		ID:          i.ID,
-		ListID:      i.ListID,
-		Title:       i.Title,
-		Description: i.Description,
-		Done:        i.Done,
 	}
 }
 
